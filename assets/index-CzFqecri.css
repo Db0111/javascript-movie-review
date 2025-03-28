@@ -160,7 +160,6 @@ body {
 section {
   display: flex;
   flex-direction: column;
-  justify-content: center;
 }
 
 main {
@@ -169,6 +168,11 @@ main {
 
 .star {
   width: 24px;
+}
+
+.rate-star {
+  width: 24px;
+  cursor: pointer;
 }
 
 button {
@@ -195,7 +199,6 @@ button.more {
 }
 
 #wrap {
-  min-width: 1440px;
   background-color: var(--color-bluegray-100);
 }
 
@@ -208,6 +211,8 @@ button.more {
 .container {
   max-width: 1280px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .background-container {
@@ -246,10 +251,14 @@ button.more {
 }
 
 .search-container {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translate(-50%, 0);
+  display: flex;
+  width: 525px;
+  padding: 0 0 0 5px;
+  border-radius: 32px;
+  outline: none;
+  border: 2px solid #d1d5db;
+  color: #fff;
+  background-color: transparent;
 }
 
 .contentContainer {
@@ -268,14 +277,11 @@ button.more {
 }
 
 .search-input {
-  display: flex;
-  width: 525px;
-  padding: 6px 16px;
-  border-radius: 32px;
-  outline: none;
-  border: 2px solid #d1d5db;
-  color: #fff;
+  width: 100%;
   background-color: transparent;
+  border: none;
+  padding-left: 10px;
+  color: #fff;
 }
 
 .search-input::placeholder {
@@ -287,11 +293,7 @@ button.more {
 }
 
 .search-button {
-  position: absolute;
-  top: 50%;
-  right: -20px;
   border: none;
-  transform: translate(-50%, -50%);
   background-color: transparent;
 }
 
@@ -303,6 +305,18 @@ button.more {
   margin-bottom: 8px;
 }
 
+.logosearchbar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  height: auto;
+  align-items: center;
+  justify-content: center;
+}
+
 h1.logo {
   font-size: 2rem;
 }
@@ -311,11 +325,14 @@ h1.logo {
   display: flex;
   align-items: baseline;
   color: var(--color-yellow);
+  font-family: "Montserrat";
+  font-weight: 600;
 }
 
 .rate > img {
   position: relative;
   top: 2px;
+  margin-right: 2px;
 }
 
 span.rate-value {
@@ -340,6 +357,13 @@ span.rate-value {
   border-radius: 10px;
 }
 
+.movie-title {
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 100%;
+  letter-spacing: 0%;
+}
+
 footer.footer {
   min-height: 180px;
   background-color: var(--color-bluegray-80);
@@ -352,6 +376,51 @@ footer.footer {
 
 footer.footer p:not(:last-child) {
   margin-bottom: 8px;
+}
+
+@media screen and (max-width: 1023px) and (min-width: 768px) {
+  .logosearchbar-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .search-container {
+    display: flex;
+    position: static;
+    transform: none;
+    text-align: center;
+  }
+
+  .search-button {
+    position: static;
+    margin-left: auto;
+    transform: none;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .banner {
+    width: 100%;
+  }
+
+  .logosearchbar-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .search-container {
+    display: flex;
+    position: static;
+    transform: none;
+    text-align: center;
+    width: 400px;
+  }
+
+  .search-button {
+    position: static;
+    margin-left: auto;
+    transform: none;
+  }
 }
 :root {
   --color-white: #ffffff;
@@ -414,7 +483,7 @@ footer.footer p:not(:last-child) {
 .thumbnail-list {
   margin: 0 auto 56px;
   display: grid;
-  grid-template-columns: repeat(5, 200px);
+  grid-template-columns: repeat(4, 200px);
   gap: 70px;
 }
 
@@ -435,19 +504,74 @@ footer.footer p:not(:last-child) {
   line-height: 1.2rem;
 }
 
-p.rate {
+.average_rate {
   display: flex;
   align-items: baseline;
   color: var(--color-yellow);
 }
 
-p.rate > span {
-  margin-left: 4px;
-}
-
 .item .star {
   width: 16px;
   top: 1px;
+}
+
+@media screen and (max-width: 1023px) and (min-width: 768px) {
+  .thumbnail-list {
+    display: grid;
+    grid-template-columns: repeat(3, 200px);
+    animation: gridShift 0.7s ease-in-out;
+    gap: 64px;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .background-container {
+    height: 400px;
+  }
+  .overlay {
+    height: 400px;
+  }
+  .banner {
+    height: 400px;
+  }
+  .top-rated-movie {
+    margin-top: 50px;
+    position: absolute;
+
+    top: 5rem;
+  }
+  .thumbnail-list {
+    display: grid;
+    grid-template-columns: repeat(1, 200px);
+    white-space: nowrap;
+    animation: gridCollapse 0.7s ease-in-out;
+  }
+
+  #wrap h2 {
+    font-size: 36px;
+  }
+}
+
+@keyframes gridShift {
+  0% {
+    opacity: 0.5;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gridCollapse {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 .skeleton-image {
   width: 200px;
