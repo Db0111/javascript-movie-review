@@ -399,7 +399,6 @@ class MovieList {
     return $listContainer;
   }
 }
-const MAXIMUM_PAGE = 500;
 async function ContentsContainer(results, contentTitle) {
   var _a;
   const $main = document.querySelector("main");
@@ -443,10 +442,6 @@ async function handleAdditionalData(movieService, contentTitle, observer) {
     additionalData = await movieService.getPopularMovies();
   }
   hideSkeleton();
-  if (additionalData.results.length === 0 || movieService.getCurrentPage() >= MAXIMUM_PAGE) {
-    observer.disconnect();
-    return;
-  }
   const movieList = new MovieList(additionalData.results);
   const $movieList = movieList.renderMovieList();
   $section == null ? void 0 : $section.appendChild($movieList);
@@ -456,6 +451,10 @@ async function handleAdditionalData(movieService, contentTitle, observer) {
       await handleThumbnailClick($thumbnail);
     });
   });
+  if (additionalData.results.length === 0 || movieService.getCurrentPage() === additionalData.total_pages) {
+    observer.disconnect();
+    return;
+  }
 }
 async function handleThumbnailClick(thumbnailElement) {
   const id = thumbnailElement.dataset.id;
