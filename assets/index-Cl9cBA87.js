@@ -413,15 +413,7 @@ async function ContentsContainer(results, contentTitle) {
   const $thumbnails = document.querySelectorAll(".thumbnail");
   $thumbnails.forEach(($thumbnail) => {
     $thumbnail.addEventListener("click", async () => {
-      const id = $thumbnail.dataset.id;
-      if (id) {
-        const movieService = new MovieService();
-        const movieDetails = await movieService.getMovieDetails(Number(id));
-        const event = new CustomEvent("modalOpenClicked", {
-          detail: movieDetails
-        });
-        document.dispatchEvent(event);
-      }
+      await handleThumbnailClick($thumbnail);
     });
   });
   hideSkeleton();
@@ -458,6 +450,23 @@ async function handleAdditionalData(movieService, contentTitle, observer) {
   const movieList = new MovieList(additionalData.results);
   const $movieList = movieList.renderMovieList();
   $section == null ? void 0 : $section.appendChild($movieList);
+  const $newThumbnails = $movieList.querySelectorAll(".thumbnail");
+  $newThumbnails.forEach(($thumbnail) => {
+    $thumbnail.addEventListener("click", async () => {
+      await handleThumbnailClick($thumbnail);
+    });
+  });
+}
+async function handleThumbnailClick(thumbnailElement) {
+  const id = thumbnailElement.dataset.id;
+  if (id) {
+    const movieService = new MovieService();
+    const movieDetails = await movieService.getMovieDetails(Number(id));
+    const event = new CustomEvent("modalOpenClicked", {
+      detail: movieDetails
+    });
+    document.dispatchEvent(event);
+  }
 }
 function HeaderSkeleton() {
   const $headerSkeletonContainer = document.createElement("header");
