@@ -422,6 +422,18 @@ footer.footer p:not(:last-child) {
     transform: none;
   }
 }
+
+.error-box {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ce0018;
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 9999;
+}
 :root {
   --color-white: #ffffff;
   --color-lightblue-90: #0da9fd;
@@ -543,7 +555,7 @@ footer.footer p:not(:last-child) {
   .thumbnail-list {
     display: grid;
     grid-template-columns: repeat(1, 200px);
-    white-space: nowrap;
+    white-space: normal;
     animation: gridCollapse 0.7s ease-in-out;
   }
 

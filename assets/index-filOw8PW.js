@@ -203,23 +203,31 @@ function Header({ title, backdrop_path, poster_path, vote_average, overview }) {
   return $header;
 }
 function onError(status) {
+  let message = "";
   switch (status) {
     case 400:
-      alert("요청이 잘못되었습니다. 다시 한 번 확인해 주세요.🥲");
+      message = "요청이 잘못되었습니다. 다시 한 번 확인해 주세요.🥲";
       break;
     case 403:
-      alert("이 작업을 수행할 권한이 없습니다. 권한을 확인해 주세요.🥲");
+      message = "이 작업을 수행할 권한이 없습니다. 권한을 확인해 주세요.🥲";
       break;
     case 404:
-      alert("요청하신 페이지를 찾을 수 없습니다. 주소를 확인해 주세요.🥲");
+      message = "요청하신 페이지를 찾을 수 없습니다. 주소를 확인해 주세요.🥲";
       break;
     case 500:
-      alert("서버에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.🥲");
+      message = "서버에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.🥲";
       break;
     default:
-      alert("알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.🥲");
+      message = "알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.🥲";
       break;
   }
+  function showError(message2) {
+    const errorBox = document.createElement("div");
+    errorBox.innerText = message2;
+    document.body.appendChild(errorBox);
+    setTimeout(() => errorBox.remove(), 3e3);
+  }
+  showError(message);
 }
 class APIHandler {
   static async get(endpoint, headers = {}) {
@@ -244,41 +252,19 @@ class APIHandler {
       const data = await response.json();
       return data;
     } catch (error) {
-      onError(0);
-      return [];
+      if (error instanceof Error) {
+        onError(error.message);
+        throw new Error(error.message);
+      }
     }
   }
 }
-class MovieService {
-  constructor() {
-    __publicField(this, "currentPage");
-    __publicField(this, "baseUrl");
-    this.currentPage = 1;
-    this.baseUrl = "https://api.themoviedb.org/3";
-  }
-  async getPopularMovies() {
-    const movies = await APIHandler.get(
-      `/movie/popular?language=ko-KR&page=${this.currentPage}`
-    );
-    return movies;
-  }
-  async getSearchResult(searchWord) {
-    const searchResult = await APIHandler.get(
-      `/search/movie?query=${searchWord}&include_adult=false&language=ko-KR&page=${this.currentPage}`
-    );
-    return searchResult;
-  }
-  async getMovieDetails(movieId) {
+class DetailMovieService {
+  static async getMovieDetails(movieId) {
     const movieDetails = await APIHandler.get(
       `/movie/${movieId}?language=ko-KR`
     );
     return movieDetails;
-  }
-  nextPage() {
-    this.currentPage = this.currentPage + 1;
-  }
-  getCurrentPage() {
-    return this.currentPage;
   }
 }
 function Skeleton() {
@@ -390,13 +376,7 @@ class MovieList {
     );
   }
   renderMovieList() {
-    const $listContainer = document.createElement("ul");
-    $listContainer.classList.add("thumbnail-list");
-    this.movieList.forEach((movieInstance) => {
-      const $movie = movieInstance.movieRender();
-      $listContainer.appendChild($movie);
-    });
-    return $listContainer;
+    return this.movieList.map((movieInstance) => movieInstance.movieRender());
   }
 }
 async function ContentsContainer(results, contentTitle) {
@@ -406,9 +386,12 @@ async function ContentsContainer(results, contentTitle) {
   const $h2 = document.createElement("h2");
   $h2.innerText = contentTitle;
   $section == null ? void 0 : $section.appendChild($h2);
+  const $listContainer = document.createElement("ul");
+  $listContainer.classList.add("thumbnail-list");
   const movieList = new MovieList(results);
   const $movieList = movieList.renderMovieList();
-  $section == null ? void 0 : $section.appendChild($movieList);
+  $movieList.forEach((movie) => $listContainer.appendChild(movie));
+  $section == null ? void 0 : $section.appendChild($listContainer);
   const $thumbnails = document.querySelectorAll(".thumbnail");
   $thumbnails.forEach(($thumbnail) => {
     $thumbnail.addEventListener("click", async () => {
@@ -429,24 +412,25 @@ async function ContentsContainer(results, contentTitle) {
     $main == null ? void 0 : $main.appendChild($contentContainer);
   }
 }
-async function handleAdditionalData(movieService, contentTitle, observer) {
-  const $section = document.querySelector("section");
+async function handleAdditionalData(movieService, searchMovieService, contentTitle, observer) {
   const isSearchMode = contentTitle.includes('"');
-  movieService.nextPage();
   showSkeleton(20, "section");
   let additionalData;
   if (isSearchMode) {
     const searchQuery = contentTitle.replace(/['"]/g, "").replace(" 검색 결과", "");
-    additionalData = await movieService.getSearchResult(searchQuery);
+    searchMovieService.nextPage();
+    additionalData = await searchMovieService.getSearchResult(searchQuery);
   } else {
+    movieService.nextPage();
     additionalData = await movieService.getPopularMovies();
   }
   hideSkeleton();
   const movieList = new MovieList(additionalData.results);
   const $movieList = movieList.renderMovieList();
-  $section == null ? void 0 : $section.appendChild($movieList);
-  const $newThumbnails = $movieList.querySelectorAll(".thumbnail");
-  $newThumbnails.forEach(($thumbnail) => {
+  const $listContainer = document.querySelector(".thumbnail-list");
+  $movieList.forEach((movie) => $listContainer == null ? void 0 : $listContainer.appendChild(movie));
+  const $newThumbnails = $listContainer == null ? void 0 : $listContainer.querySelectorAll(".thumbnail");
+  $newThumbnails == null ? void 0 : $newThumbnails.forEach(($thumbnail) => {
     $thumbnail.addEventListener("click", async () => {
       await handleThumbnailClick($thumbnail);
     });
@@ -459,12 +443,29 @@ async function handleAdditionalData(movieService, contentTitle, observer) {
 async function handleThumbnailClick(thumbnailElement) {
   const id = thumbnailElement.dataset.id;
   if (id) {
-    const movieService = new MovieService();
-    const movieDetails = await movieService.getMovieDetails(Number(id));
+    const movieDetails = await DetailMovieService.getMovieDetails(Number(id));
     const event = new CustomEvent("modalOpenClicked", {
       detail: movieDetails
     });
     document.dispatchEvent(event);
+  }
+}
+class MovieService {
+  constructor() {
+    __publicField(this, "currentPage");
+    this.currentPage = 1;
+  }
+  async getPopularMovies() {
+    const movies = await APIHandler.get(
+      `/movie/popular?language=ko-KR&page=${this.currentPage}`
+    );
+    return movies;
+  }
+  nextPage() {
+    this.currentPage = this.currentPage + 1;
+  }
+  getCurrentPage() {
+    return this.currentPage;
   }
 }
 function HeaderSkeleton() {
@@ -488,60 +489,24 @@ function HeaderSkeleton() {
   `;
   return $headerSkeletonContainer;
 }
-function openModal({
-  title,
-  release_date,
-  genres,
-  poster_path,
-  vote_average,
-  overview
-}) {
-  const $modalContainer = document.createElement("div");
-  $modalContainer.classList.add("modalcontainer");
-  const modalElement = Modal({
-    title,
-    release_date,
-    genres,
-    poster_path,
-    vote_average,
-    overview
-  });
-  $modalContainer.innerHTML = modalElement;
-  const stars = $modalContainer.querySelectorAll(".rate-star");
+const Star = ({ $modalContainer, title }) => {
+  const $stars = $modalContainer.querySelectorAll(".rate-star");
   let currentRating = 0;
-  stars.forEach((star, index) => {
+  $stars.forEach((star, index) => {
     star.addEventListener("click", (event) => {
       event.stopPropagation();
       currentRating = index + 1;
-      updateStarDisplay(stars, currentRating);
+      updateStarDisplay($stars, currentRating);
       saveRating(title, currentRating);
     });
   });
   const savedRating = getRating(title);
   if (savedRating) {
     currentRating = savedRating;
-    updateStarDisplay(stars, currentRating);
+    updateStarDisplay($stars, currentRating);
   }
-  document.body.appendChild($modalContainer);
-  const closeButton = $modalContainer.querySelector("#closeModal");
-  if (closeButton) {
-    closeButton.addEventListener("click", () => {
-      $modalContainer.remove();
-    });
-  }
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && $modalContainer) {
-      $modalContainer.remove();
-    }
-  });
-  const $modalOverlay = $modalContainer.querySelector("#modalBackground");
-  if ($modalOverlay) {
-    $modalOverlay.addEventListener("click", () => {
-      $modalContainer.remove();
-    });
-  }
-  function updateStarDisplay(stars2, rating) {
-    stars2.forEach((star, index) => {
+  function updateStarDisplay(stars, rating) {
+    stars.forEach((star, index) => {
       if (index < rating) {
         star.src = "./star_filled.png";
       } else {
@@ -587,6 +552,79 @@ function openModal({
     );
     return movieRatings[movieTitle] || null;
   }
+  const cleanup = () => {
+    $stars.forEach((star, index) => {
+      star.removeEventListener("click", () => {
+      });
+    });
+  };
+  return {
+    cleanup,
+    currentRating
+  };
+};
+function openModal({
+  title,
+  release_date,
+  genres,
+  poster_path,
+  vote_average,
+  overview
+}) {
+  const $modalContainer = document.createElement("div");
+  $modalContainer.classList.add("modalcontainer");
+  const modalElement = Modal({
+    title,
+    release_date,
+    genres,
+    poster_path,
+    vote_average,
+    overview
+  });
+  $modalContainer.innerHTML = modalElement;
+  const starComponent = Star({
+    $modalContainer,
+    title
+  });
+  document.body.appendChild($modalContainer);
+  const closeButton = $modalContainer.querySelector("#closeModal");
+  if (closeButton) {
+    closeButton.addEventListener("click", () => {
+      starComponent.cleanup();
+      $modalContainer.remove();
+    });
+  }
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && $modalContainer) {
+      starComponent.cleanup();
+      $modalContainer.remove();
+    }
+  });
+  const $modalOverlay = $modalContainer.querySelector("#modalBackground");
+  if ($modalOverlay) {
+    $modalOverlay.addEventListener("click", () => {
+      starComponent.cleanup();
+      $modalContainer.remove();
+    });
+  }
+}
+class SearchMovieService {
+  constructor() {
+    __publicField(this, "currentPage");
+    this.currentPage = 1;
+  }
+  async getSearchResult(searchWord) {
+    const searchResult = await APIHandler.get(
+      `/search/movie?query=${searchWord}&include_adult=false&language=ko-KR&page=${this.currentPage}`
+    );
+    return searchResult;
+  }
+  nextPage() {
+    this.currentPage = this.currentPage + 1;
+  }
+  getCurrentPage() {
+    return this.currentPage;
+  }
 }
 function renderHeader({
   id,
@@ -615,8 +653,7 @@ function renderHeader({
   const $openModalButton = $header.querySelector(".detail");
   if ($openModalButton) {
     $openModalButton.addEventListener("click", async () => {
-      const movieService = new MovieService();
-      const movieDetails = await movieService.getMovieDetails(id);
+      const movieDetails = await DetailMovieService.getMovieDetails(id);
       const event = new CustomEvent("modalOpenClicked", {
         detail: movieDetails
       });
@@ -636,7 +673,7 @@ document.addEventListener("modalOpenClicked", (event) => {
     overview
   });
 });
-function handleSearchEvent(movieService) {
+function handleSearchEvent(searchMovieService) {
   const $input = document.querySelector(".search-input");
   const $button = document.querySelector(".search-button");
   const $section = document.querySelector("section");
@@ -648,7 +685,9 @@ function handleSearchEvent(movieService) {
       if (inputValue === "") {
         alert("검색어를 입력해주세요.");
       } else {
-        const searchResult = await movieService.getSearchResult(inputValue);
+        const searchResult = await searchMovieService.getSearchResult(
+          inputValue
+        );
         if ($section) {
           $section.innerHTML = "";
         }
@@ -662,7 +701,7 @@ function handleSearchEvent(movieService) {
     if (inputValue === "") {
       alert("검색어를 입력해주세요.");
     } else {
-      const searchResult = await movieService.getSearchResult(inputValue);
+      const searchResult = await searchMovieService.getSearchResult(inputValue);
       if ($section) {
         $section.innerHTML = "";
       }
@@ -670,7 +709,7 @@ function handleSearchEvent(movieService) {
     }
   });
 }
-let currentObserver = null;
+let currentObserver;
 async function renderContent(results, title) {
   if (currentObserver) {
     currentObserver.disconnect();
@@ -679,12 +718,18 @@ async function renderContent(results, title) {
   const $main = document.querySelector("main");
   const $lastItem = document.createElement("div");
   $lastItem.style.height = "10px";
-  $main == null ? void 0 : $main.appendChild($lastItem);
+  $main.appendChild($lastItem);
   const movieService = new MovieService();
+  const searchMovieService = new SearchMovieService();
   currentObserver = new IntersectionObserver((entries) => {
-    entries.forEach(async (entry) => {
+    entries.forEach((entry) => {
       if (entry.isIntersecting) {
-        handleAdditionalData(movieService, title, currentObserver);
+        handleAdditionalData(
+          movieService,
+          searchMovieService,
+          title,
+          currentObserver
+        );
       }
     });
   });
@@ -697,6 +742,7 @@ function renderFooter() {
 }
 async function main() {
   const movieService = new MovieService();
+  const searchMovieService = new SearchMovieService();
   const $container = document.querySelector("#wrap");
   const $headerSkeleton = HeaderSkeleton();
   $container == null ? void 0 : $container.prepend($headerSkeleton);
@@ -705,7 +751,7 @@ async function main() {
   renderHeader(data.results[0]);
   hideSkeleton();
   renderContent(data.results, "지금 인기 있는 영화");
-  handleSearchEvent(movieService);
+  handleSearchEvent(searchMovieService);
   renderFooter();
 }
 main();
