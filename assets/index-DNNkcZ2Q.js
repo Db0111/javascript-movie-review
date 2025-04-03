@@ -288,7 +288,7 @@ function showSkeleton(count = 20, parentSelector = "section") {
   } else {
     $listContainer.innerHTML = "";
   }
-  for (let i = 0; i < count; i++) {
+  for (let i2 = 0; i2 < count; i2++) {
     const $skeletonItem = Skeleton();
     $listContainer.appendChild($skeletonItem);
   }
@@ -299,6 +299,9 @@ function hideSkeleton() {
   $skeletonLists.forEach(($list) => {
     $list.remove();
   });
+}
+function i(...n) {
+  return (t) => n.reduceRight((n2, t2) => t2(n2), t);
 }
 function MovieCaption({ title, vote_average }) {
   const $movieCaption = document.createElement("div");
@@ -371,9 +374,13 @@ class Movie {
 class MovieList {
   constructor(movies) {
     __publicField(this, "movieList");
-    this.movieList = movies.map(
-      ({ id, poster_path, title, vote_average }) => new Movie({ id, poster_path, title, vote_average })
-    );
+    const createMovie = ({
+      id,
+      poster_path,
+      title,
+      vote_average
+    }) => new Movie({ id, poster_path, title, vote_average });
+    this.movieList = movies.map(i(createMovie));
   }
   renderMovieList() {
     return this.movieList.map((movieInstance) => movieInstance.movieRender());
